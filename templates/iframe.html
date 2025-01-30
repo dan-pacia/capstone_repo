@@ -3,29 +3,18 @@
     <head>
         <title>ADS-B WeatherMap</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f4f4f9;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                text-align: center;
-            }
-            h2 {
-                color: #333;
-                margin-bottom: 20px;
-            }
-        </style>
     </head>
     <body>
         <h2>ADS-B WeatherMap</h2>
         <div class="map-container">
             {{ iframe|safe }}
         </div>
+
+        <div class="button-container">
+            <button onclick="callPyFunc()" class="simple-button">Click Me</button>
+            <button onclick="plotOnMap()" class="simple-button">Plot Me</button>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     </body>
 </html>

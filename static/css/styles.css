@@ -23,7 +23,7 @@ h2 {
     align-items: center;
     width: 100%;
     max-width: 1200px;
-    height: calc(100vh - 50px); /* subtract ht for header */
+    height: calc(100vh - 100px); /* subtract ht for header */
     margin: 0 auto;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
@@ -35,6 +35,36 @@ iframe {
     border: none;
     width: 100%; 
     height: 100%; 
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    background-color: #f0f0f0;  /* Light background for button area */
+}
+
+.simple-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-align: center;
+    margin: 5px;
+}
+
+.simple-button:hover {
+    background-color: #0056b3;
+}
+
+.simple-button:active {
+    background-color: #004494;
 }
 
 
