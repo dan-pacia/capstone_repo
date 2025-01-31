@@ -18,10 +18,7 @@ def hello_world():
 @app.route("/test-plot", methods=["GET", "POST"])
 def test_plot(): # call test update map function
     df = get_conus_states()
-    # check if df is not none somehow
-    lat_arr = df["latitude"].to_numpy()
-    lon_arr = df["longitude"].to_numpy()
-    iframe = test_update_map(lat_arr, lon_arr)
+    iframe = test_update_map(df)
     return {"iframe": iframe}
 
 

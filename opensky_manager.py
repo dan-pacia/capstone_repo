@@ -6,6 +6,9 @@ def get_conus_states():
     Connect to the OpenSky API and query for all positions
     in a rough bounding box around the continental United States.
     Returns a pandas dataframe with positions. 
+
+    todo: 
+        drop na rows for needed columns
     """
 
     api = OpenSkyApi()
