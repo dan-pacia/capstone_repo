@@ -3,18 +3,30 @@
     <head>
         <title>ADS-B WeatherMap</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+        <!-- Load Leaflet first -->
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" />
+
+        <!-- Ensure this is a module -->
+        <script type="module" src="{{ url_for('static', filename='js/leaflet_map.js') }}"></script>
+        <script type="module" src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     </head>
     <body>
         <h2>ADS-B WeatherMap</h2>
+
         <div class="map-container">
-            {{ iframe|safe }}
+            <!-- Add a div for Leaflet map -->
+            <div id="map" style="width: 100%; height: 500px;"></div>
         </div>
 
         <div class="button-container">
-            <button onclick="callPyFunc()" class="simple-button">Click Me</button>
-            <button onclick="plotOnMap()" class="simple-button">Plot Me</button>
+            <!--<button id="getDataButton" class="simple-button">Get Data</button>-->
+            <button id="clearMapButton" class="simple-button">Clear Map</button>
+            <button id="liveDataStart" class="simple-button">Start Live Data</button>
+            <button id="liveDataStop" class="simple-button">Stop Live Data</button>
         </div>
-
-        <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     </body>
 </html>
+
