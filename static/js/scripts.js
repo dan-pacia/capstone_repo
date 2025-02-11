@@ -10,8 +10,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentLayer = null;
     let liveDataInterval = null;
+    let storeDataVal = 0;
 
-    function applyStyling(feature, latlng) {
+    function applyStyling(feature, latlng) { // note: heading seems off by ~ 45 degrees
         var heading = feature.properties.heading || 0;
         var customIcon = L.divIcon({
             className: 'custom-plane-icon',
@@ -28,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const bounds = map.getBounds();
             const bbox = `${bounds.getSouthWest().lat},${bounds.getNorthEast().lat},${bounds.getSouthWest().lng},${bounds.getNorthEast().lng}`;
-            const response = await fetch(`/api-call/${bbox}`);
+            const response = await fetch(`/api-call/${bbox}/${storeDataVal}`);
             const data = await response.json();
 
             if (!response.ok) {
@@ -49,32 +50,6 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("An error occurred while fetching live data:", error);
         }
     }
-
-    // document.getElementById("getDataButton").addEventListener("click", async function () {
-    //     try {
-    //         const response = await fetch("/get-data");
-    //         const data = await response.json();
-
-    //         if (!response.ok) {
-    //             console.error("Error fetching data:", response.status, data);
-    //             return;
-    //         }
-
-    //         console.log("Data received:", data);
-
-    //         if (currentLayer) {
-    //             map.removeLayer(currentLayer);
-    //         }
-
-    //         currentLayer = L.geoJson(data, {
-    //             pointToLayer: applyStyling
-    //         }).addTo(map);
-    //         console.log("current layer:", currentLayer);
-
-    //     } catch (error) {
-    //         console.error("An error occurred:", error);
-    //     }
-    // });
 
     document.getElementById("clearMapButton").addEventListener("click", function () {
         if (currentLayer) {
@@ -99,6 +74,12 @@ document.addEventListener("DOMContentLoaded", function () {
             liveDataInterval = null;
             console.log("Live data fetching stopped");
         }
+    });
+
+    // Event listener for the checkbox
+    document.getElementById("saveDataCb").addEventListener("change", function () {
+        storeDataVal = this.checked ? 1 : 0;
+        console.log("Save Data checkbox changed:", storeDataVal);
     });
 
     console.log("scripts.js execution completed");

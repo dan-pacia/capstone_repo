@@ -8,6 +8,7 @@ import json
 host = "127.0.0.1"
 port = 27017
 
+# mongodb connection
 client = pymongo.MongoClient(host, port)
 db = client.adsb_db
 collection = db.api_data
@@ -20,7 +21,7 @@ app = Flask(__name__)
 def iframe_page():
     return render_template("iframe.html")
 
-@app.route("/map_iframe") # url for this route in iframe if index page
+@app.route("/map_iframe") # URL for this route in iframe if index page
 def map_iframe():
     return render_template("map_iframe.html")
 
@@ -29,12 +30,15 @@ def get_data():
     gdf = gpd.read_file("dataframe.geojson")
     return gdf.to_json()
 
-@app.route("/api-call/<bbox>")
-def get_states(bbox):
+@app.route("/api-call/<bbox>/<save_data>")
+def get_states(bbox, save_data): 
     """
     Fetch states within the given bounding box, enforcing a size limit.
+    bbox: list where: min_lat, max_lat, min_lng, max_lng
+    save_data: int, 1 to insert, 0 otherwise
     """
     try:
+        save_data = int(save_data) # is passed as string from client
         min_lat, max_lat, min_lng, max_lng = map(float, bbox.split(","))
 
         min_lat = round(min_lat, 4)
@@ -53,9 +57,10 @@ def get_states(bbox):
         print("Rounded BBOX:", rounded_bbox)  # Debugging output
         json_states = get_os_states(rounded_bbox)
 
-        states_in = json.loads(json_states)
-        collection.insert_many(states_in["features"])
-        
+        if save_data == 1:
+            states_in = json.loads(json_states)
+            collection.insert_many(states_in["features"])
+
         return json_states
 
     except ValueError:
