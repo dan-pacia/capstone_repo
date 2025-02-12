@@ -21,7 +21,7 @@ app = Flask(__name__)
 def iframe_page():
     return render_template("iframe.html")
 
-@app.route("/map_iframe") # URL for this route in iframe if index page
+@app.route("/map_iframe") # URL for this route in iframe of index page
 def map_iframe():
     return render_template("map_iframe.html")
 
@@ -57,9 +57,15 @@ def get_states(bbox, save_data):
         print("Rounded BBOX:", rounded_bbox)  # Debugging output
         json_states = get_os_states(rounded_bbox)
 
+        if not json_states: # if api returns none
+            return {"error": "Failed to retrieve data"}, 200
+
         if save_data == 1:
-            states_in = json.loads(json_states)
-            collection.insert_many(states_in["features"])
+            try:
+                states_in = json.loads(json_states)
+                collection.insert_many(states_in["features"])
+            except Exception as e:
+                print("Error inserting to database", e)
 
         return json_states
 
