@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function applyStyling(feature, latlng) { // note: heading seems off by ~ 45 degrees
         var heading = feature.properties.heading || 0;
+        heading = heading - 90; // custom style orients like unit circle, with 0 due east
         var customIcon = L.divIcon({
             className: 'custom-plane-icon',
             html: `<div style="font-size: 16px; color: gold; text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black; transform: translate(-50%, -50%) rotate(${heading}deg);">
@@ -44,8 +45,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             currentLayer = L.geoJson(data, {
-                pointToLayer: applyStyling
+                pointToLayer: applyStyling, 
+                onEachFeature: function (feature, layer) { 
+                    let popupContent = "<b>Aircraft Info</b><br>";
+                    for (let key in feature.properties) {
+                        popupContent += `<b>${key}:</b> ${feature.properties[key]}<br>`;
+                    }
+                    layer.bindPopup(popupContent);
+                }
             }).addTo(map);
+
+            // populate the filter menu with features 
+            if (data.features.length > 0) {
+                populateFilterFields(data.features[0].properties);
+            }
         } catch (error) {
             console.error("An error occurred while fetching live data:", error);
         }
@@ -81,6 +94,66 @@ document.addEventListener("DOMContentLoaded", function () {
         storeDataVal = this.checked ? 1 : 0;
         console.log("Save Data checkbox changed:", storeDataVal);
     });
+
+    // Event listener for the filter data button 
+    document.getElementById("filterDataButton").addEventListener("click", function () {
+        document.getElementById("filterDialog").style.display = "block";
+    });
+
+    // event listener for the x button on the filter data button
+    document.getElementById("closeFilterDialog").addEventListener("click", function () {
+        document.getElementById("filterDialog").style.display = "none";
+    });
+
+    // Make the dialog draggable
+    let dialog = document.getElementById("filterDialog");
+    let header = document.querySelector(".dialog-header");
+    let offsetX, offsetY, isDragging = false;
+
+    header.addEventListener("mousedown", function (e) {
+        isDragging = true;
+        offsetX = e.clientX - dialog.offsetLeft;
+        offsetY = e.clientY - dialog.offsetTop;
+    });
+
+    document.addEventListener("mousemove", function (e) {
+        if (isDragging) {
+            dialog.style.left = `${e.clientX - offsetX}px`;
+            dialog.style.top = `${e.clientY - offsetY}px`;
+        }
+    });
+
+    document.addEventListener("mouseup", function () {
+        isDragging = false;
+    });
+
+    // Populate the dialog with filter fields
+    function populateFilterFields(properties) {
+        let filterContent = document.getElementById("filterContent");
+        filterContent.innerHTML = ""; // Clear previous filters
+
+        Object.keys(properties).forEach(key => {
+            let label = document.createElement("label");
+            label.textContent = key;
+            label.className = "filter-label";
+
+            let select = document.createElement("select");
+            select.className = "filter-select";
+            select.setAttribute("data-key", key);
+
+            // Make the dropdown searchable using Select2 library
+            $(select).select2({ // issue here
+                placeholder: `Select ${key}`,
+                allowClear: true,
+                width: '100%'
+            });
+
+            filterContent.appendChild(label);
+            filterContent.appendChild(select);
+        });
+    }
+
+
 
     console.log("scripts.js execution completed");
 });

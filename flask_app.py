@@ -1,5 +1,4 @@
 from flask import Flask, render_template, jsonify
-from folium_map import create_map_iframe, test_update_map, realtime_map
 import geopandas as gpd
 from opensky_manager import get_os_states
 import pymongo
@@ -25,10 +24,10 @@ def iframe_page():
 def map_iframe():
     return render_template("map_iframe.html")
 
-@app.route("/get-data") # load from file for testing to reduce API calls
-def get_data():
-    gdf = gpd.read_file("dataframe.geojson")
-    return gdf.to_json()
+# @app.route("/get-data") # load from file for testing to reduce API calls
+# def get_data():
+#     gdf = gpd.read_file("dataframe.geojson")
+#     return gdf.to_json()
 
 @app.route("/api-call/<bbox>/<save_data>")
 def get_states(bbox, save_data): 
@@ -54,7 +53,7 @@ def get_states(bbox, save_data):
             return {"error": "Bounding box size exceeds limit"}, 400
         
         rounded_bbox = [min_lat, max_lat, min_lng, max_lng]
-        print("Rounded BBOX:", rounded_bbox)  # Debugging output
+        # print("Rounded BBOX:", rounded_bbox)  # Debugging output
         json_states = get_os_states(rounded_bbox)
 
         if not json_states: # if api returns none

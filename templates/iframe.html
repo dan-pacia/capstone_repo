@@ -11,13 +11,21 @@
 
         <script type="module" src="{{ url_for('static', filename='js/leaflet_map.js') }}"></script>
         <script type="module" src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+        <!-- Load Select2 CSS -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+        <!-- Load Select2 JS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+
     </head>
     <body>
         <h2>ADS-B WeatherMap</h2>
 
         <div class="map-container">
             <!-- Add a div for Leaflet map -->
-            <div id="map" style="width: 100%; height: 500px;"></div>
+            <div id="map" style="width: 100%; height: 100%;"></div>
         </div>
 
         <div class="button-container">
@@ -27,7 +35,17 @@
             <button id="liveDataStop" class="simple-button">Stop Live Data</button>
             <input type="checkbox" id="saveDataCb">
             <label for="saveDataCb">Save Data</label>
+            <button id="filterDataButton" class="simple-button">Filter Data</button>
 
+        </div>
+        <div id="filterDialog" class="filter-dialog">
+            <div class="dialog-header">
+                <span>Filter Data</span>
+                <button id="closeFilterDialog" class="close-button">&times;</button>
+            </div>
+            <div id="filterContent" class="filter-content">
+                <!-- Dynamic filter fields will be added here -->
+            </div>
         </div>
     </body>
 </html>

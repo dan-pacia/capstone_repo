@@ -10,6 +10,9 @@ def client():
     with app.test_client() as client:
         yield client
 
+# to run test with coverage:
+# pytest --cov=flask_app --cov-report=term-missing test_app.py
+
 def test_iframe_page_loads(client): # ut-1
     """Test that the iframe page loads successfully."""
     response = client.get("/")

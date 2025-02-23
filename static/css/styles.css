@@ -67,4 +67,65 @@ iframe {
     background-color: #004494;
 }
 
+/* Movable dialog box styling */
+.filter-dialog {
+    display: none;
+    position: fixed;
+    top: 20%;
+    left: 30%;
+    width: 300px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    z-index: 1000;
+}
+
+/* Dialog header */
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: left;
+    font-weight: bold;
+    cursor: move;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Close button */
+.close-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Filter content */
+.filter-content {
+    margin-top: 10px;
+    
+}
+
+/* Label styling */
+.filter-label {
+    display: block;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+/* Dropdown styling */
+.filter-select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+
+
+
+
+
 
