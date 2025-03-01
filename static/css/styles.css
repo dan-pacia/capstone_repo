@@ -73,7 +73,7 @@ iframe {
     position: fixed;
     top: 20%;
     left: 30%;
-    width: 300px;
+    width: 400px;
     background: white;
     border: 2px solid #333;
     border-radius: 8px;
@@ -101,27 +101,108 @@ iframe {
     cursor: pointer;
 }
 
-/* Filter content */
-.filter-content {
-    margin-top: 10px;
-    
+/* Styling for the filter dialog */
+#filterContent {
+    display: grid;
+    grid-template-columns: 1fr 2fr; /* Labels in one column, inputs in another */
+    gap: 15px 10px; /* Gap between rows and columns */
+    align-items: center; /* Center content vertically */
+    max-width: 650px;
+    margin: 0 auto;
 }
 
-/* Label styling */
+/* Styling for labels */
 .filter-label {
-    display: block;
     font-weight: bold;
-    margin-top: 8px;
+    white-space: nowrap;
+    text-align: right;
+    margin-right: 10px;
 }
 
-/* Dropdown styling */
-.filter-select {
+/* Styling for range sliders */
+.filter-slider-container {
+    display: flex;
+    align-items: center;
     width: 100%;
-    padding: 5px;
+    justify-content: space-between;
+    padding: 0 5px;
+}
+
+.slider-label {
+    width: 50px; /* Fixed width for the labels */
+    text-align: center;
+    font-size: 14px;
+}
+
+.current-value {
+    display: inline-block;
+    margin-left: 10px;
+    font-weight: bold;
+    width: 45px;
+}
+
+/* Ensure the slider values and labels are aligned properly */
+.filter-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.filter-slider-container .slider-label:first-child {
+    width: 10px;
+}
+
+.filter-slider {
+    width: calc(100% - 120px); /* Make the slider take up the remaining width */
+    margin-top: 5px;
+}
+
+/* Styling for dropdowns */
+.filter-select {
+    min-height: 35px;
+    width: 100%;
+    padding: 0px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    margin-top: 4px;
 }
+
+.filter-button {
+    grid-column: span 2; /* Make button span both columns */
+    padding: 5px 5px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+}
+
+.filter-button:hover {
+    background-color: #0056b3;
+}
+
+.reset-filters {
+    grid-column: span 2; /* Make button span both columns */
+    padding: 5px 5px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+}
+
+.reset-filters:hover {
+    background-color: #0056b3;
+}
+
+
+
 
 
 

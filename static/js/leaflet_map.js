@@ -2,8 +2,8 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("DOM fully loaded, initializing map...");
 
     const map = L.map("map", {
-        center: [38.8, -76.8], // DC
-        zoom: 7,
+        center: [38.9, -77.45], // Lat, Lon for around Dulles airport
+        zoom: 10,
         preferCanvas: true,  // Uses Canvas for rendering (performance boost)
     });
 
