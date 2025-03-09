@@ -1,13 +1,16 @@
+// Event listener that triggers when the DOM loads, adds all other functions and event listeners 
 document.addEventListener("DOMContentLoaded", function () {
     console.log("scripts.js loaded");
 
-    const map = window.leafletMap;  // Access the map created in leaflet_map.js
+    // Access the map created in leaflet_map.js
+    const map = window.leafletMap;  
 
     if (!map) {
         console.error("Map is not initialized yet.");
         return;
     }
 
+    // create objects required for other event listeners 
     let currentLayer = null;
     let liveDataInterval = null;
     let storeDataVal = 0;
@@ -15,6 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let selectedFilters = null;
 
+    // Function to apply filters to incomming data prior to map layer creation
     function applyFilters(data, selectedFilters) {
         // If no filters are selected, return the original data
         if (!selectedFilters || Object.keys(selectedFilters).length === 0) {
@@ -54,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return { ...data, features: filteredFeatures };
     }
     
-    
+    // Function to apply desired styling to each point plotted on map
     function applyStyling(feature, latlng) { 
         var heading = feature.properties.heading || 0;
         heading = heading - 90; // custom style orients like unit circle, with 0 due east
@@ -69,8 +73,11 @@ document.addEventListener("DOMContentLoaded", function () {
         return L.marker(latlng, {icon: customIcon});
     }
 
+    // Function to call flask route to get data to plot 
     async function fetchLiveData() {
         try {
+            // use current extent of map when requesting data, 
+            // reduces number of API credits per call
             const bounds = map.getBounds();
             const bbox = `${bounds.getSouthWest().lat},${bounds.getNorthEast().lat},${bounds.getSouthWest().lng},${bounds.getNorthEast().lng}`;
             const response = await fetch(`/api-call/${bbox}/${storeDataVal}`);
@@ -94,10 +101,12 @@ document.addEventListener("DOMContentLoaded", function () {
             // overwrite data by applying filters
             let filteredData = applyFilters(data, selectedFilters);
 
+            // remove current map layer if it exists
             if (currentLayer) {
                 map.removeLayer(currentLayer);
             }
 
+            // create new layer, applying our desired styling and addting on-click function for metadata display
             currentLayer = L.geoJson(filteredData, {
                 pointToLayer: applyStyling, 
                 onEachFeature: function (feature, layer) { 
@@ -137,6 +146,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Event listener for stop live data button 
     document.getElementById("liveDataStop").addEventListener("click", function () {
         if (liveDataInterval) {
+            // clear interval for live data fetching, stopping map updates
             clearInterval(liveDataInterval);
             liveDataInterval = null;
             console.log("Live data fetching stopped");
@@ -194,11 +204,12 @@ document.addEventListener("DOMContentLoaded", function () {
             liveDataInterval = null;
         }
 
-        // call function to populate filters 
+        // If there is no data to display, do not display menu and notify user
         if (latestData == null) {
             alert("No data loaded to filter");
             console.log("No data to filter", latestData);
             
+        // display and populate the filters menu if there is data
         } else {
             document.getElementById("filterDialog").style.display = "block";
             populateFilterFields(latestData.features.map(feature => feature.properties));
@@ -218,7 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let header = document.querySelector(".dialog-header");
     let offsetX, offsetY, isDragging = false;
 
-
+    // add click and drag to header section of filters menu only
     header.addEventListener("mousedown", function (e) {
         isDragging = true;
         offsetX = e.clientX - dialog.offsetLeft;
@@ -236,12 +247,14 @@ document.addEventListener("DOMContentLoaded", function () {
         isDragging = false;
     });
 
-    function populateFilterFields(data) { // need to call this once, not each time we get data
+    // Function to get filters to use to populate filters menu. 
+    function populateFilterFields(data) { 
     // check if data exists. If no data display some message. If data, continue 
 
         let filterContent = document.getElementById("filterContent");
         filterContent.innerHTML = ""; // Clear previous filters
 
+        // Create buttons to apply or reset filters
         let applyButton = document.createElement("button");
         applyButton.textContent = "Apply Filters";
         applyButton.className = "filter-button";   
@@ -251,6 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
         resetFiltersButton.className = "reset-filters";
 
     
+        // list of fields we need to create filters for 
         const fields = ["callsign", "icao24", "on_ground", "origin_country", "velocity", "baro_altitude", "geo_altitude"];
     
         fields.forEach(field => {
@@ -260,6 +274,8 @@ document.addEventListener("DOMContentLoaded", function () {
     
             // Check if the field is numeric, so we can use a slider
             if (["velocity", "baro_altitude", "geo_altitude"].includes(field)) {
+
+                // get min and max values to use for slider ranges 
                 let minVal = Math.round(Math.min(...data.map(item => item[field])));
                 
                 let maxVal = Math.round(Math.max(...data.map(item => item[field])));
@@ -321,6 +337,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     select.appendChild(defaultOption);
                 }
     
+                // Get unique values to use for categorical filters (dropdowns)
                 let uniqueValues = [...new Set(data.map(item => item[field]))].filter(value => value !== undefined);
     
                 uniqueValues.forEach(value => {
@@ -335,9 +352,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             }); // closes loop for each field
 
+        // Add the buttons we created to the filters menu
         filterContent.appendChild(applyButton);
         filterContent.appendChild(resetFiltersButton);
     
+        // Make sure select2 applys correctly
         setTimeout(() => {
             $(".filter-select").each(function () {
                 if ($(this).hasClass("select2-hidden-accessible")) {
@@ -421,7 +440,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     
-
     console.log("scripts.js execution completed");
 });
 
