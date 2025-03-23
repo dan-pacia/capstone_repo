@@ -121,7 +121,24 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
             console.error("An error occurred while fetching live data:", error);
         }
+
+        // check if interpDataInterval is set or null
+
+        // if null skip
+
+        // if set, interpolate positions for filteredData
+
+        // apply styling and update currentLayer
     }
+
+    // add event listener to test data button
+    document.getElementById("testImageButton").addEventListener("click", async function () {
+        // test function to load an image
+        // sw/ne corners, lat, lon
+        var imgBounds = [[14.571340, -152.109282], [56.761450, -52.946876]];
+
+        L.imageOverlay("/images/20250323_010617_merc.jpg", imgBounds, {opacity: 0.65}).addTo(map);
+    })
 
     // Event listener to clear map
     document.getElementById("clearMapButton").addEventListener("click", function () {

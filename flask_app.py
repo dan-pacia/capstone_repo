@@ -1,8 +1,10 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_from_directory
 import geopandas as gpd
 from opensky_manager import get_os_states
+from goes_manager import get_latest_image
 import pymongo
 import json
+import os 
 
 host = "127.0.0.1"
 port = 27017
@@ -14,6 +16,8 @@ collection = db.api_data
 
 
 app = Flask(__name__)
+
+IMAGE_FOLDER = os.path.join(os.getcwd(), 'composites')
 
 
 @app.route("/") # serve "index" page with iframe
@@ -28,6 +32,17 @@ def map_iframe():
 def get_data():
     gdf = gpd.read_file("dataframe.geojson")
     return gdf.to_json()
+
+@app.route("/get-test-image") # load weather image from file
+def get_test_image():
+    # im_path = get_latest_image()
+    filename = "20250323_010117_merc.tif"
+    return jsonify({"img": f"\composites\{filename}"})
+    #  return {"img": im_path}
+
+@app.route("/images/<path:filename>")
+def serve_image(filename):
+    return send_from_directory(IMAGE_FOLDER, filename)
 
 @app.route("/api-call/<bbox>/<save_data>")
 def get_states(bbox, save_data): 
