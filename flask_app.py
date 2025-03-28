@@ -33,14 +33,17 @@ def get_data():
     gdf = gpd.read_file("dataframe.geojson")
     return gdf.to_json()
 
-@app.route("/get-test-image") # load weather image from file
+@app.route("/get-latest-image") # load weather image from file
 def get_test_image():
-    # im_path = get_latest_image()
-    filename = "20250323_010117_merc.tif"
-    return jsonify({"img": f"\composites\{filename}"})
-    #  return {"img": im_path}
+    latest_img = get_latest_image()
 
-@app.route("/images/<path:filename>")
+    if latest_img == "Latest Data not yet available":
+        return "New image not yet available" 
+
+    return latest_img
+
+
+@app.route("/get-latest-image/<path:filename>")
 def serve_image(filename):
     return send_from_directory(IMAGE_FOLDER, filename)
 

@@ -16,7 +16,67 @@ document.addEventListener("DOMContentLoaded", function () {
     let storeDataVal = 0;
     let latestData = null;
 
+    let interpolatedLayer = null;
+
     let selectedFilters = null;
+
+    let latestImgURL = null;
+    let currentOverlay = null;
+    let liveIMGInterval = 0;
+
+    // function to interpolate ads-b data points
+    function interpolateAndPlot(data, dt) {
+        const R = 6371; // Earth radius in km
+        let interpolatedFeatures = [];
+    
+        data.features.forEach(feature => {
+            if (feature.properties.on_ground) {
+                return; // Ignore ground objects
+            }
+    
+            // skip if missing fields we need
+            let { latitude, longitude, velocity, heading } = feature.properties;
+            if (!latitude || !longitude || !velocity || !heading) return;
+    
+            // Convert speed from knots to km/s
+            let speed_kms = (velocity * 1.852) / 3600; // 1 knot = 1.852 km/h
+    
+            // Convert heading to radians
+            let theta = (heading * Math.PI) / 180;
+    
+            // Calculate distance traveled in km
+            let d = speed_kms * dt;
+    
+            // Compute new latitude and longitude
+            let delta_lat = (d / R) * Math.cos(theta);
+            let delta_lon = (d / R) * Math.sin(theta) / Math.cos(latitude * Math.PI / 180);
+    
+            let new_lat = latitude + (delta_lat * 180) / Math.PI;
+            let new_lon = longitude + (delta_lon * 180) / Math.PI;
+    
+            // Clone and update feature
+            let newFeature = JSON.parse(JSON.stringify(feature));
+            newFeature.geometry.coordinates = [new_lon, new_lat];
+            interpolatedFeatures.push(newFeature);
+        });
+
+        console.log("Created interpolated features:", interpolatedFeatures)
+    
+        if (interpolatedFeatures.length > 0) {
+            if (interpolatedLayer) {
+                // if layer exists remove layer
+                map.removeLayer(interpolatedLayer)
+            }
+
+            interpolatedLayer = L.geoJson({ type: "FeatureCollection", features: interpolatedFeatures }, {
+                pointToLayer: applyInterpolatedStyling,
+            }).addTo(map);
+
+            // render actual points on top
+            currentLayer.bringToFront();
+        }
+    }
+    
 
     // Function to apply filters to incomming data prior to map layer creation
     function applyFilters(data, selectedFilters) {
@@ -73,6 +133,23 @@ document.addEventListener("DOMContentLoaded", function () {
         return L.marker(latlng, {icon: customIcon});
     }
 
+    function applyInterpolatedStyling(feature, latlng) { 
+        let heading = feature.properties.heading || 0;
+        heading -= 90; // Rotate to align with the unit circle
+    
+        let interpolatedIcon = L.divIcon({
+            className: 'interpolated-plane-icon',
+            html: `<div style="font-size: 16px; color: blue; text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black; transform: translate(-50%, -50%) rotate(${heading}deg);">
+                        <i class="fa fa-plane"></i>
+                  </div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+    
+        return L.marker(latlng, { icon: interpolatedIcon });
+    }
+    
+
     // Function to call flask route to get data to plot 
     async function fetchLiveData() {
         try {
@@ -101,6 +178,11 @@ document.addEventListener("DOMContentLoaded", function () {
             // overwrite data by applying filters
             let filteredData = applyFilters(data, selectedFilters);
 
+            // remove interpolated layer if it exists
+            if (interpolatedLayer) {
+                map.removeLayer(interpolatedLayer)
+            }
+
             // remove current map layer if it exists
             if (currentLayer) {
                 map.removeLayer(currentLayer);
@@ -118,27 +200,61 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }).addTo(map);
 
+            if (document.getElementById("interpDataCb").checked) { 
+                setTimeout(() => interpolateAndPlot(filteredData, 5), 2500);
+            }
+
         } catch (error) {
             console.error("An error occurred while fetching live data:", error);
         }
 
-        // check if interpDataInterval is set or null
-
-        // if null skip
-
-        // if set, interpolate positions for filteredData
-
-        // apply styling and update currentLayer
     }
 
-    // add event listener to test data button
-    document.getElementById("testImageButton").addEventListener("click", async function () {
-        // test function to load an image
-        // sw/ne corners, lat, lon
+    async function fetchImage() {
+
         var imgBounds = [[14.571340, -152.109282], [56.761450, -52.946876]];
 
-        L.imageOverlay("/images/20250323_010617_merc.jpg", imgBounds, {opacity: 0.65}).addTo(map);
-    })
+        var response = await fetch('/get-latest-image')
+        if (!response.ok) {
+            console.error("Failed to fetch image", response.status, response.statusText);
+            // set interval to 15 seconds to try again until new image
+            liveIMGInterval = setInterval(fetchImage, 15000)
+            return;
+        }
+        let responseData = await response.text();
+        console.log(responseData)
+        if (responseData === "New image not yet available") {
+            console.log(responseData);
+            // set interval to 15 seconds to try again until new image
+            liveIMGInterval = setInterval(fetchImage, 15000)
+            return;
+        }
+        let imgName = responseData.trim();
+        let imgURL = `/get-latest-image/${imgName}`;
+        // check if we got a new image
+        if (latestImgURL === imgURL) {
+            console.log("Did not receive new image");
+            return;
+        }
+
+        console.log("Image URL", imgURL);
+        latestImgURL = imgURL;
+
+        // check if an overlay exists, delete and replace if it does
+        if (currentOverlay) {
+            map.removeLayer(currentOverlay);
+            currentOverlay = null;
+        }
+        currentOverlay = L.imageOverlay(imgURL, imgBounds, {opacity: 0.65}).addTo(map);
+        // set interval back to 5 minutes
+        liveIMGInterval = setInterval(fetchImage, 300000)
+
+    }
+
+    // // add event listener to test data button
+    // document.getElementById("testImageButton").addEventListener("click", async function () {
+    //     fetchImage()
+    // })
 
     // Event listener to clear map
     document.getElementById("clearMapButton").addEventListener("click", function () {
@@ -150,6 +266,15 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             console.log("No layer to remove");
         }
+        // remove overlay
+        if (currentOverlay) {
+            map.removeLayer(currentOverlay);
+            currentOverlay = null;
+            console.log("removed overlay layer")
+        }
+        else {
+            console.log("No overlay layer to remove")
+        }
     });
 
     // Event listener for start live data button  
@@ -158,52 +283,62 @@ document.addEventListener("DOMContentLoaded", function () {
             liveDataInterval = setInterval(fetchLiveData, 5000);
             console.log("Live data fetching started");
         }
+        // get first image and set interval for image fetching
+        if (!liveIMGInterval) {
+            fetchImage() // get first image then set the interval to update
+            liveIMGInterval = setInterval(fetchImage, 300000)
+            console.log("Live weather fetching started")
+        }
     });
 
     // Event listener for stop live data button 
     document.getElementById("liveDataStop").addEventListener("click", function () {
         if (liveDataInterval) {
-            // clear interval for live data fetching, stopping map updates
             clearInterval(liveDataInterval);
             liveDataInterval = null;
             console.log("Live data fetching stopped");
         }
+        if (liveIMGInterval) {
+            clearInterval(liveIMGInterval);
+            liveIMGInterval = null;
+            console.log("Live image fetching stopped");
+        }
     });
 
     // function to load test data 
-    document.getElementById("getDataButton").addEventListener("click", async function () {
-        try {
-            const response = await fetch("/get-data");
-            const data = await response.json();
-            if (!response.ok) {
-                console.error("Error fetching data:", response.status, data);
-                return;
-            }
-            console.log("Data received:", data);
-            latestData = data;
+    // document.getElementById("getDataButton").addEventListener("click", async function () {
+    //     try {
+    //         const response = await fetch("/get-data");
+    //         const data = await response.json();
+    //         if (!response.ok) {
+    //             console.error("Error fetching data:", response.status, data);
+    //             return;
+    //         }
+    //         console.log("Data received:", data);
+    //         latestData = data;
             
-            // 
-            let filteredData = applyFilters(data, selectedFilters);
+    //         // 
+    //         let filteredData = applyFilters(data, selectedFilters);
 
-            if (currentLayer) {
-                map.removeLayer(currentLayer);
-            }
-            currentLayer = L.geoJson(filteredData, {
-                pointToLayer: applyStyling, 
-                onEachFeature: function (feature, layer) { 
-                    let popupContent = "<b>Aircraft Info</b><br>";
-                    for (let key in feature.properties) {
-                        popupContent += `<b>${key}:</b> ${feature.properties[key]}<br>`;
-                    }
-                    layer.bindPopup(popupContent);
-                }
-            }).addTo(map);
-            console.log("current layer:", currentLayer);
+    //         if (currentLayer) {
+    //             map.removeLayer(currentLayer);
+    //         }
+    //         currentLayer = L.geoJson(filteredData, {
+    //             pointToLayer: applyStyling, 
+    //             onEachFeature: function (feature, layer) { 
+    //                 let popupContent = "<b>Aircraft Info</b><br>";
+    //                 for (let key in feature.properties) {
+    //                     popupContent += `<b>${key}:</b> ${feature.properties[key]}<br>`;
+    //                 }
+    //                 layer.bindPopup(popupContent);
+    //             }
+    //         }).addTo(map);
+    //         console.log("current layer:", currentLayer);
 
-        } catch (error) {
-            console.error("An error occurred:", error);
-        }
-    });
+    //     } catch (error) {
+    //         console.error("An error occurred:", error);
+    //     }
+    // });
 
     // Event listener for the checkbox
     document.getElementById("saveDataCb").addEventListener("change", function () {

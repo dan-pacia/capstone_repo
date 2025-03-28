@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from PIL import Image 
+import numpy as np
 
 
 def get_latest_image():
@@ -17,11 +19,22 @@ def get_latest_image():
 
     G = GOES(satellite=16, product=desired_product, domain='C')
 
-    ds = G.latest(return_as = "filelist")
+    try:
+        ds = G.latest(return_as = "filelist")
+    except FileNotFoundError:
+        print("Latest Data not yet available")
+        return "Latest Data not yet available"
 
     file_date = ds["start"].iloc[0]
 
     time_string = file_date.strftime("%Y%m%d_%H%M%S")
+
+    png_output_file = os.path.join(comps_dir, time_string + "_merc.png")
+
+    # check if we already processed the file and return if we did
+    if os.path.exists(png_output_file):
+        print("Already downloaded and processed file")
+        return os.path.basename(png_output_file)
 
     filenames = ds["file"].to_list()
 
@@ -38,7 +51,7 @@ def get_latest_image():
     print(f"Saved dataset to: {savename}")
 
     # re-load the image we just saved and reproject with rasterio
-    dst_crs = "EPSG:3857"
+    dst_crs = "EPSG:3857" 
 
     input_file = savename
     output_file = os.path.join(comps_dir, time_string + "_merc" + ".tif")
@@ -69,9 +82,17 @@ def get_latest_image():
                     resampling=Resampling.bilinear
                 )
 
-    # final step is to convert to png or jpeg :)
+    with rasterio.open(output_file) as src:
+        image_array = src.read() 
+        image_array = np.interp(image_array, (image_array.min(), image_array.max()), (0, 255)).astype(np.uint8)
+        img = Image.fromarray(np.moveaxis(image_array, 0, -1))
+        img.save(png_output_file, format="PNG")
 
-    return output_file
+    print(f"Saved PNG image to: {png_output_file}")
+    os.remove(input_file) # delete tif
+    os.remove(output_file)
+
+    return os.path.basename(png_output_file)
 
 
 
