@@ -17,7 +17,7 @@ def get_latest_image():
     desired_product = "ABI-L1b-RadC"
     desired_ds = "colorized_ir_clouds"
 
-    G = GOES(satellite=16, product=desired_product, domain='C')
+    G = GOES(satellite=19, product=desired_product, domain='C')
 
     try:
         ds = G.latest(return_as = "filelist")
@@ -40,9 +40,13 @@ def get_latest_image():
 
     filenames = [os.path.join(dl_dir, fn) for fn in filenames]
 
-    scn = Scene(reader = "abi_l1b", filenames = filenames)
+    try:
+        scn = Scene(reader = "abi_l1b", filenames = filenames)
 
-    scn.load([desired_ds])    
+        scn.load([desired_ds])    
+    except Exception as e:
+        print("An error occurred processing the files: ", e)
+        return("An error occurred processing the files")
 
     savename = os.path.join(comps_dir, time_string + ".tif")
 

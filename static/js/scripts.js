@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Calculate distance traveled in km
             let d = speed_kms * dt;
     
-            // Compute new latitude and longitude
+            // Compute new lat and lon
             let delta_lat = (d / R) * Math.cos(theta);
             let delta_lon = (d / R) * Math.sin(theta) / Math.cos(latitude * Math.PI / 180);
     
@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
         heading -= 90; // Rotate to align with the unit circle
     
         let interpolatedIcon = L.divIcon({
-            className: 'interpolated-plane-icon',
+            className: 'interpolated-plane-icon', // blue points for interpolated positions 
             html: `<div style="font-size: 16px; color: blue; text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black; transform: translate(-50%, -50%) rotate(${heading}deg);">
                         <i class="fa fa-plane"></i>
                   </div>`,
