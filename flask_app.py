@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, send_from_directory
 import geopandas as gpd
 from opensky_manager import get_os_states
 from goes_manager import get_latest_image
+from mongo_manager import get_day_timerange_from_adsb, get_distinct_days_from_adsb
 import pymongo
 import json
 import os 
@@ -41,7 +42,6 @@ def get_test_image():
         return "New image not yet available" 
 
     return latest_img
-
 
 @app.route("/get-latest-image/<path:filename>")
 def serve_image(filename):
@@ -89,6 +89,12 @@ def get_states(bbox, save_data):
     except ValueError:
         return {"error": "Invalid bounding box format"}, 400
 
+@app.route("/populate-dates")
+def populate_dates():
+    """Populate list with available dates for ADS-B data """
+    # list of available dates
+    available_dates = get_distinct_days_from_adsb()
+    return {"datesList": available_dates}
 
 
 if __name__ == "__main__":

@@ -256,6 +256,19 @@ document.addEventListener("DOMContentLoaded", function () {
     //     fetchImage()
     // })
 
+    // Event listener for historicDataButton
+    document.getElementById("historicDataButton").addEventListener("click", async function () {
+        var response = await fetch("/populate-dates")
+        if (!response.ok) {
+            console.error("An error occured retrieving dates", response.status, response.statusText);
+        }
+        const dates = await response.json();
+        console.log(dates);
+
+        // show menu and populate with available dates
+        document.getElementById("historicDialog").style.display = "block";
+    })
+
     // Event listener to clear map
     document.getElementById("clearMapButton").addEventListener("click", function () {
         if (currentLayer) {
@@ -368,6 +381,28 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("Populated filter menu");
 
             return
+        }
+    });
+
+    // add user interaction for the historic data dialog
+    let historicDialog = document.getElementById("historicDialog");
+    let historicHeader = document.querySelector(".historic-header");
+    
+    // event listener for the x button on the historic data button
+    document.getElementById("closeHistoricDialog").addEventListener("click", function () {
+        document.getElementById("historicDialog").style.display = "none";
+    });
+
+    historicHeader.addEventListener("mousedown", function (e) {
+        isDragging = true;
+        offsetX = e.clientX - historicDialog.offsetLeft;
+        offsetY = e.clientY - historicDialog.offsetTop;
+    });
+
+    document.addEventListener("mousemove", function (e) {
+        if (isDragging) {
+            historicDialog.style.left = `${e.clientX - offsetX}px`;
+            historicDialog.style.top = `${e.clientY - offsetY}px`;
         }
     });
 

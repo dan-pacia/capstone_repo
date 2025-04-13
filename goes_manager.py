@@ -24,6 +24,7 @@ def get_latest_image():
     except FileNotFoundError:
         print("Latest Data not yet available")
         return "Latest Data not yet available"
+    
 
     file_date = ds["start"].iloc[0]
 

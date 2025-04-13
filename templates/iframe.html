@@ -35,13 +35,13 @@
             <button id="liveDataStop" class="simple-button">Stop Live Data</button>
             <button id="filterDataButton" class="simple-button">Filter Data</button>
             <!-- <button id="testImageButton" class="simple-button">Load Image</button> -->
+            <button id="historicDataButton" class="simple-button">Historic Data</button>
             <input type="checkbox" id="saveDataCb">
             <label for="saveDataCb">Save Data</label>
             <input type="checkbox" id="interpDataCb">
             <label for="saveDataCb">Interpolate Positions</label>
-            
-
         </div>
+
         <div id="filterDialog" class="filter-dialog">
             <div class="dialog-header">
                 <span>Filter Data</span>
@@ -51,6 +51,16 @@
                 <!-- Dynamic filter fields will be added here -->
             </div>
         </div>
+
+        <div id="historicDialog" class="historic-dialog">
+            <div class="historic-header">
+                <span>Stored Data</span>
+                <button id="closeHistoricDialog" class="close-button">&times;</button>
+            </div>
+            <div id="historicContent" class="historic-content">
+            </div>
+        </div>
+        
     </body>
 </html>
 
