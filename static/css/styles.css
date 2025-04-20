@@ -67,6 +67,33 @@ iframe {
     background-color: #004494;
 }
 
+/* Header styling for historic dialog */
+.historic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    cursor: move;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Content area styling for historic dialog */
+.historic-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-top: 10px;
+}
+
+.selected-date {
+    background-color: #d0ebff;
+    font-weight: bold;
+    border-left: 4px solid #339af0;
+}
+
 /*dialog box to select historic data  */
 .historic-dialog {
     display: none;
@@ -80,6 +107,16 @@ iframe {
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
     padding: 15px;
     z-index: 1000;
+}
+
+.date-entry {
+    padding: 6px 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.date-entry:hover {
+    background-color: #f0f0f0;
 }
 
 /* Dialog header */

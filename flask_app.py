@@ -2,7 +2,8 @@ from flask import Flask, render_template, jsonify, send_from_directory
 import geopandas as gpd
 from opensky_manager import get_os_states
 from goes_manager import get_latest_image
-from mongo_manager import get_day_timerange_from_adsb, get_distinct_days_from_adsb
+from mongo_manager import get_distinct_times_from_adsb, get_distinct_days_from_adsb, get_data_window_for_date
+from utils import convert_timestamp
 import pymongo
 import json
 import os 
@@ -34,12 +35,13 @@ def get_data():
     gdf = gpd.read_file("dataframe.geojson")
     return gdf.to_json()
 
-@app.route("/get-latest-image") # load weather image from file
-def get_test_image():
-    latest_img = get_latest_image()
+@app.route("/get-image-filename/<img_type>")
+def get_test_image(img_type):
 
-    if latest_img == "Latest Data not yet available":
-        return "New image not yet available" 
+    latest_img = get_latest_image(img_type)
+
+    if latest_img == "Image not available":
+        return "Image not available"
 
     return latest_img
 
@@ -80,6 +82,11 @@ def get_states(bbox, save_data):
         if save_data == 1:
             try:
                 states_in = json.loads(json_states)
+                for feature in states_in["features"]:
+                    if "properties" in feature and "timestamp" in feature["properties"]:
+                        ts = feature["properties"]["timestamp"]
+                        feature["properties"]["timestamp"] = convert_timestamp(ts)
+
                 collection.insert_many(states_in["features"])
             except Exception as e:
                 print("Error inserting to database", e)
@@ -95,6 +102,22 @@ def populate_dates():
     # list of available dates
     available_dates = get_distinct_days_from_adsb()
     return {"datesList": available_dates}
+
+@app.route("/get-date-range/<date>")
+def get_date_range(date):
+    # distinct timestamps for that date
+    distinct_times = get_distinct_times_from_adsb(date)
+    return jsonify(distinct_times)
+
+@app.route("/get-historic-data-range/<date>/<start_time>")
+def get_historic_data_range(date, start_time):
+    # Query data in a time window, return as JSON
+    print("from client: ", date, start_time)
+    data = get_data_window_for_date(date, start_time)  
+    for d in data:
+        d["_id"] = str(d["_id"])
+
+    return jsonify(data)
 
 
 if __name__ == "__main__":

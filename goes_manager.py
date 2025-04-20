@@ -9,7 +9,7 @@ from PIL import Image
 import numpy as np
 
 
-def get_latest_image():
+def get_latest_image(img_type):
 
     dl_dir = r"C:\Users\danpa\data"
     comps_dir = r"C:\Users\danpa\Projects\aa_capstone\py_project\composites"
@@ -19,13 +19,22 @@ def get_latest_image():
 
     G = GOES(satellite=19, product=desired_product, domain='C')
 
-    try:
-        ds = G.latest(return_as = "filelist")
-    except FileNotFoundError:
-        print("Latest Data not yet available")
-        return "Latest Data not yet available"
-    
+    print("image type: ", img_type)
 
+    if img_type == "latest":
+        try:
+            ds = G.latest(return_as = "filelist")
+        except FileNotFoundError:
+            print("Image not available")
+            return "Image not available"
+    else: # 2025-04-18_221215
+        try:
+            target_time = datetime.strptime(img_type, "%Y-%m-%d_%H%M%S")
+            ds = G.nearesttime(target_time, return_as = "filelist")
+        except FileNotFoundError:
+            print("Image not available")
+            return "Image not available"
+    
     file_date = ds["start"].iloc[0]
 
     time_string = file_date.strftime("%Y%m%d_%H%M%S")
@@ -98,9 +107,6 @@ def get_latest_image():
     os.remove(output_file)
 
     return os.path.basename(png_output_file)
-
-
-
 
 
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 def get_distinct_days_from_adsb() -> list:
     """
     Connects to the MongoDB database and returns a sorted list of distinct days
-    (in YYYY-MM-DD format) found in the 'properties.timestamp' field.
+    (in YYYY-MM-DD format) found in the 'properties.timestamp' field stored as ISO strings.
 
     Returns:
         Sorted list of unique days in 'YYYY-MM-DD' format.
@@ -21,30 +21,13 @@ def get_distinct_days_from_adsb() -> list:
         {
             "$project": {
                 "day": {
-                    "$dateToString": {
-                        "format": "%Y-%m-%d",
-                        "date": {
-                            "$toDate": {
-                                "$multiply": [
-                                    {
-                                        "$convert": {
-                                            "input": "$properties.timestamp",
-                                            "to": "long",
-                                            "onError": None,
-                                            "onNull": None
-                                        }
-                                    },
-                                    1000
-                                ]
-                            }
-                        }
-                    }
+                    "$substrBytes": ["$properties.timestamp", 0, 10]
                 }
             }
         },
         {
             "$match": {
-                "day": { "$ne": None }  # filter out failed conversions
+                "day": { "$regex": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
             }
         },
         {
@@ -59,72 +42,92 @@ def get_distinct_days_from_adsb() -> list:
         }
     ]
 
-
     results = collection.aggregate(pipeline)
     return [doc["_id"] for doc in results]
 
 
-
-def get_day_timerange_from_adsb(day):
+def get_distinct_times_from_adsb(day):
     """
-    Returns the earliest and latest time (HH:MM:SS) from 'properties.timestamp'
-    for a given day in the adsb_data collection.
+    Returns a list of distinct times (HH:MM:SS) from 'properties.timestamp'
+    for a given day when timestamps are ISO strings.
 
     Args:
         day (str): Date string in 'YYYY-MM-DD' format.
 
     Returns:
-        Tuple (earliest_time, latest_time) as strings
+        List of strings representing distinct times, sorted chronologically.
+        Returns an empty list if no data is found.
     """
-    host = "127.0.0.1"
-    port = 27017
-    
-    client = pymongo.MongoClient(host, port)
+    client = pymongo.MongoClient("127.0.0.1", 27017)
     db = client.adsb_db
     collection = db.api_data
 
-    # Convert input day to datetime range
-    start_dt = datetime.strptime(day, "%Y-%m-%d")
-    end_dt = start_dt + timedelta(days=1)
-
-    # Convert to Unix timestamps
-    start_ts = int(start_dt.timestamp())
-    end_ts = int(end_dt.timestamp())
-
     pipeline = [
         {
-            "$project": {
-                "timestamp": {
-                    "$convert": {
-                        "input": "$properties.timestamp",
-                        "to": "long",
-                        "onError": None,
-                        "onNull": None
-                    }
+            "$match": {
+                "properties.timestamp": {
+                    "$regex": f"^{day}T"
                 }
             }
         },
         {
-            "$match": {
-                "timestamp": { "$gte": start_ts, "$lt": end_ts }
+            "$project": {
+                "time": {
+                    "$substr": ["$properties.timestamp", 11, 8]
+                }
             }
         },
         {
             "$group": {
-                "_id": None,
-                "min_ts": { "$min": "$timestamp" },
-                "max_ts": { "$max": "$timestamp" }
+                "_id": "$time"
+            }
+        },
+        {
+            "$sort": {
+                "_id": 1
             }
         }
     ]
 
     result = list(collection.aggregate(pipeline))
-    if not result:
-        return None
-
-    min_dt = datetime.utcfromtimestamp(result[0]["min_ts"]).strftime("%H:%M:%S")
-    max_dt = datetime.utcfromtimestamp(result[0]["max_ts"]).strftime("%H:%M:%S")
-
-    return (min_dt, max_dt)
+    return [doc["_id"] for doc in result]
 
 
+def get_data_window_for_date(date_str, start_time_str, window_seconds=1):
+    """
+    Queries MongoDB for documents in a specific time window using ISO 8601 timestamp strings.
+
+    Args:
+        date_str (str): Date in 'YYYY-MM-DD' format.
+        start_time_str (str): Time in 'HH:MM:SS' format.
+        window_seconds (int): Number of seconds in the window.
+    
+    Returns:
+        List of documents within the specified time window.
+    """
+    # Create datetime objects
+    start_dt = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M:%S")
+    end_dt = start_dt + timedelta(seconds=window_seconds)
+
+    # Convert to ISO 8601 strings (UTC format with "Z")
+    start_iso = start_dt.isoformat() + "Z"
+    end_iso = end_dt.isoformat() + "Z"
+
+    print("Mongo query (ISO timestamps):", start_iso, end_iso)
+
+    # Connect to MongoDB
+    host = "127.0.0.1"
+    port = 27017
+    client = pymongo.MongoClient(host, port)
+    db = client.adsb_db
+    collection = db.api_data
+
+    # Query documents within the time window
+    cursor = collection.find({
+        "properties.timestamp": {
+            "$gte": start_iso,
+            "$lte": end_iso
+        }
+    })
+
+    return list(cursor)

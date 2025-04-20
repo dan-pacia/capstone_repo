@@ -24,6 +24,27 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentOverlay = null;
     let liveIMGInterval = 0;
 
+    let selectedDate = null;  // To track selected date
+
+    let historicDataInterval = null; 
+    let historicDataRange = null; 
+    let currentHistoricTime = null;
+    let historicTimeout = null;
+
+    let displayedDataType = null;
+
+    function timeToSeconds(timeStr) {
+        const [h, m, s] = timeStr.split(":").map(Number);
+        return h * 3600 + m * 60 + s;
+    }
+    
+    function secondsToTime(seconds) {
+        const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
     // function to interpolate ads-b data points
     function interpolateAndPlot(data, dt) {
         const R = 6371; // Earth radius in km
@@ -153,6 +174,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Function to call flask route to get data to plot 
     async function fetchLiveData() {
         try {
+
             // use current extent of map when requesting data, 
             // reduces number of API credits per call
             const bounds = map.getBounds();
@@ -214,7 +236,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
         var imgBounds = [[14.571340, -152.109282], [56.761450, -52.946876]];
 
-        var response = await fetch('/get-latest-image')
+        // logic to deterine which image to request from server
+        let imgType;
+        if (displayedDataType === "live") {
+            imgType = "live";
+        } else if  (displayedDataType === "historic") {
+            if (!selectedDate || !currentHistoricTime) {
+                console.warn("Historic date/time not yet selected.");
+                return;
+            }
+            imgType = `${selectedDate}_${currentHistoricTime.replaceAll(":", "")}`;
+        } else {
+            console.warn("displayedDataType is not set."); 
+            return;
+        }
+
+        var response = await fetch(`/get-image-filename/${imgType}`)
         if (!response.ok) {
             console.error("Failed to fetch image", response.status, response.statusText);
             // set interval to 15 seconds to try again until new image
@@ -223,7 +260,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         let responseData = await response.text();
         console.log(responseData)
-        if (responseData === "New image not yet available") {
+        if (responseData === "Image not available") {
             console.log(responseData);
             // set interval to 15 seconds to try again until new image
             liveIMGInterval = setInterval(fetchImage, 15000)
@@ -251,23 +288,142 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-    // // add event listener to test data button
-    // document.getElementById("testImageButton").addEventListener("click", async function () {
-    //     fetchImage()
-    // })
-
     // Event listener for historicDataButton
     document.getElementById("historicDataButton").addEventListener("click", async function () {
         var response = await fetch("/populate-dates")
         if (!response.ok) {
             console.error("An error occured retrieving dates", response.status, response.statusText);
         }
-        const dates = await response.json();
-        console.log(dates);
+        const data = await response.json();
+        const dates = data.datesList;
 
+        const datesContainer = document.getElementById("historicContent");
+        datesContainer.innerHTML = ""; // Clear any previous content
+
+        if (dates.length === 0) {
+            datesContainer.innerHTML = "<p>No historic data available.</p>";
+        } else {
+            dates.forEach(date => {
+                const dateDiv = document.createElement("div");
+                dateDiv.textContent = date;
+                dateDiv.className = "date-entry";
+                datesContainer.appendChild(dateDiv);
+
+                dateDiv.addEventListener("click", () => {
+                    document.querySelectorAll(".date-entry").forEach(el => {
+                        el.classList.remove("selected-date");
+                    })
+
+                    dateDiv.classList.add("selected-date");
+                    selectedDate = date;
+                })
+
+                historicContent.appendChild(dateDiv);
+            })
+
+        }
         // show menu and populate with available dates
         document.getElementById("historicDialog").style.display = "block";
     })
+    // event listener for button to load historic data  
+    document.getElementById("loadHistoricDataBtn").addEventListener("click", async () => {
+        if (!selectedDate) {
+            alert("Please select a date.");
+            return;
+        }
+    
+        console.log(selectedDate);
+        displayedDataType = "historic";
+    
+        try {
+            const response = await fetch(`/get-date-range/${selectedDate}`);
+            if (!response.ok) {
+                console.error("Failed to get date range:", response.statusText);
+                return;
+            }
+    
+            const timeList = await response.json();
+            if (!Array.isArray(timeList) || timeList.length === 0) {
+                console.warn("No time data available for selected date.");
+                return;
+            }
+    
+            console.log("Time range:", timeList);
+            historicDataRange = timeList;
+    
+            let index = 0;
+    
+            // Recursive fetch function using dynamic timeout
+            const fetchNext = async () => {
+                if (index >= historicDataRange.length) {
+                    console.log("Finished playing historic data.");
+                    return;
+                }
+    
+                currentHistoricTime = historicDataRange[index];
+    
+                try {
+                    const response = await fetch(`/get-historic-data-range/${selectedDate}/${currentHistoricTime}`);
+                    if (!response.ok) throw new Error("Failed to fetch historic data");
+    
+                    const data = await response.json();
+                    console.log(`Data at ${currentHistoricTime}:`, data);
+                    latestData = data;
+    
+                    if (Array.isArray(data) && data.length > 0) {
+                        const filteredData = applyFilters(data, selectedFilters);
+    
+                        if (currentLayer) {
+                            map.removeLayer(currentLayer);
+                        }
+    
+                        currentLayer = L.geoJson(filteredData, {
+                            pointToLayer: applyStyling,
+                            onEachFeature: function (feature, layer) {
+                                let popupContent = "<b>Aircraft Info</b><br>";
+                                for (let key in feature.properties) {
+                                    popupContent += `<b>${key}:</b> ${feature.properties[key]}<br>`;
+                                }
+                                layer.bindPopup(popupContent);
+                            }
+                        }).addTo(map);
+                    }
+    
+                } catch (error) {
+                    console.error("Error during fetchHistoricData:", error);
+                    return;
+                }
+    
+                index++;
+    
+                if (index < historicDataRange.length) {
+                    const currentSeconds = timeToSeconds(historicDataRange[index - 1]);
+                    const nextSeconds = timeToSeconds(historicDataRange[index]);
+                    const deltaMillis = (nextSeconds - currentSeconds) * 1000;
+    
+                    historicTimeout = setTimeout(fetchNext, deltaMillis);
+                }
+            };
+                if (historicTimeout) {
+                    clearTimeout(historicTimeout);
+                    historicTimeout = null;
+                }
+            // Start the loop
+            fetchNext();
+
+            // get first image and set interval for image fetching
+            if (!liveIMGInterval) {
+                fetchImage() // get first image then set the interval to update
+                liveIMGInterval = setInterval(fetchImage, 300000)
+                console.log("Live weather fetching started")
+            }
+    
+            document.getElementById("historicDialog").style.display = "none";
+    
+        } catch (error) {
+            console.error("Error fetching date range:", error);
+        }
+    });
 
     // Event listener to clear map
     document.getElementById("clearMapButton").addEventListener("click", function () {
@@ -293,6 +449,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Event listener for start live data button  
     document.getElementById("liveDataStart").addEventListener("click", function () {
         if (!liveDataInterval) {
+            displayedDataType = "live";
             liveDataInterval = setInterval(fetchLiveData, 5000);
             console.log("Live data fetching started");
         }
@@ -316,6 +473,12 @@ document.addEventListener("DOMContentLoaded", function () {
             liveIMGInterval = null;
             console.log("Live image fetching stopped");
         }
+        if (historicTimeout) {
+            clearTimeout(historicTimeout);
+            historicTimeout = null;
+            console.log("Historic data playback stopped");
+        }
+
     });
 
     // function to load test data 
@@ -362,12 +525,28 @@ document.addEventListener("DOMContentLoaded", function () {
     // Event listener for the filter data button 
     document.getElementById("filterDataButton").addEventListener("click", function () {
         
+        // check which data type is running, store in variable
+        if (liveDataInterval !== null) {
+            activeInterval = "live";
+        } else if (historicDataInterval !== null) {
+            activeInterval = "historic";
+        } else {
+            activeInterval = "none";  // or null, depending on how you want to handle it
+        }
+        // pause correct type
+
         // Pause live data fetching while user selects desired filters
-        if (liveDataInterval != null) {
+        if (activeInterval === "live") {
             console.log("Pausing live data fetching");
             clearInterval(liveDataInterval);
             liveDataInterval = null;
+        } else {
+            if (activeInterval === "historic") {
+                console.log("Pausing historic data fetching");
+                clearInterval(historicDataInterval);
+                historicDataInterval = null;
         }
+    }
 
         // If there is no data to display, do not display menu and notify user
         if (latestData == null) {
