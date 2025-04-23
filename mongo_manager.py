@@ -93,6 +93,7 @@ def get_distinct_times_from_adsb(day):
     return [doc["_id"] for doc in result]
 
 
+
 def get_data_window_for_date(date_str, start_time_str, window_seconds=1):
     """
     Queries MongoDB for documents in a specific time window using ISO 8601 timestamp strings.

@@ -21,7 +21,7 @@ def get_latest_image(img_type):
 
     print("image type: ", img_type)
 
-    if img_type == "latest":
+    if img_type == "live":
         try:
             ds = G.latest(return_as = "filelist")
         except FileNotFoundError:
