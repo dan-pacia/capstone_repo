@@ -13,6 +13,8 @@ import pandas as pd
 
 # UT-1 Test that app route serving weather data will not re-query S3 bucket and reprocess existing imagery
 def test_get_latest_image_uses_cached_png():
+
+    test_timestamp = "2025-04-05_123000"
     with patch("goes_manager.os.path.exists") as mock_exists, \
          patch("goes_manager.GOES") as mock_goes, \
          patch("goes_manager.Scene") as mock_scene, \
@@ -25,7 +27,7 @@ def test_get_latest_image_uses_cached_png():
         mock_ds["start"].iloc.__getitem__.return_value.strftime.return_value = "20250405_123000"
         mock_goes.return_value.latest.return_value = mock_ds
 
-        result = get_latest_image()
+        result = get_latest_image(test_timestamp)
         assert result == expected_filename
 
 

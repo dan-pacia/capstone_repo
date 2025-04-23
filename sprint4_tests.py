@@ -7,6 +7,9 @@ import rasterio
 from goes_manager import get_latest_image
 from unittest.mock import patch
 
+# pytest --cov=. sprint4_tests.py
+
+
 # UT-1: Test that the days with available dates can be retrieved from the database
 def test_get_distinct_days_from_adsb():
     # Step 1: Call the function
@@ -41,7 +44,7 @@ def test_get_distinct_times_from_adsb():
 # UT-3 Test that documents can be retrieved from database correctly with query on “properties.timestamp” 
 def test_get_data_window_for_date():
     # Step 1: Provide known inputs
-    test_date = "2025-04-18"  # Replace with a known date from your DB
+    test_date = "2025-04-18" 
     start_time = "22:13:14"
     window_seconds = 1
 
@@ -132,7 +135,7 @@ def test_existing_processed_image_is_used():
         mock_instance.save_dataset.return_value = None
 
         # Second call should reuse the existing image and not trigger processing
-        get_latest_image()
+        get_latest_image(test_datetime)
 
         # Assert Satpy's Scene was never called again
         mock_scene.assert_not_called()
