@@ -7,6 +7,8 @@ import rasterio
 from goes_manager import get_latest_image
 from unittest.mock import patch
 
+# generate coverage report
+# pytest -v --cov=mongo_manager --cov=goes_manager --cov-report=term-missing sprint4_tests.py
 
 # UT-1: Test that the days with available dates can be retrieved from the database
 def test_get_distinct_days_from_adsb():
